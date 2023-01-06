@@ -1,0 +1,85 @@
+---
+title: "Individual assignment"
+author: "Jari Meenhuis"
+format: html
+editor: visual
+---
+
+## Installing the R-scripts
+
+```{r}
+install.packages("dplyr")
+install.packages("fastDummies")
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("mice")
+install.packages("naniar")
+install.packages("texreg")
+install.packages("rmarkdown")
+```
+
+## Reading the R-scripts
+
+```{r}
+library(dplyr)
+library(fastDummies)
+library(tidyverse)
+library(ggplot2)
+library(mice)
+library(naniar)
+library(texreg)
+library(rmarkdown)
+```
+
+##Downloading the dataset
+
+```{r}
+Url1 <- "https://raw.githubusercontent.com/JariMeenhuis/Individual-Project/main/Student%20Performance%20new.csv"
+StudentperformanceDF <- read.csv(Url1)
+View(StudentperformanceDF)
+```
+
+##Making dummy columns for the dataset.
+```{r}
+StudentperformanceDF <- dummy_cols(StudentperformanceDF, select_columns = c("race.ethnicity", "parental.level.of.education"))
+
+##Recoding the variable lunch, sex and test preparation, because the outcomes are characters.
+StudentperformanceDF <- dplyr::mutate(StudentperformanceDF, Lunch_Dummy = recode(lunch, "standard" = 0, "free/reduced" = 1))
+StudentperformanceDF <- dplyr::mutate(StudentperformanceDF, Sex_Dummy = recode(sex, "F" = 0, "M" = 1))
+StudentperformanceDF <- dplyr::mutate(StudentperformanceDF, Test.preparation.course_Dummy = recode(test.preparation.course, "none" = 0, "completed" = 1))
+```
+
+##Creating models to calculate correlations and significance 
+```{r}
+##Calculating the correlations and looking for multicollinearity
+cor(dplyr::select(StudentperformanceDF,-c("race.ethnicity", "parental.level.of.education", "lunch", "sex", "test.preparation.course"))) 
+
+#Creating a model for the math score, with all relevant variables. The variables 'race.ethnicity A', parental.level.of.education Associate Degree' were kept out because they gave NA-values.
+model1a <- (lm(formula = math.percentage~ reading.score.percentage + writing.score.percentage + Lunch_Dummy + Sex_Dummy + Test.preparation.course_Dummy + race.ethnicity + parental.level.of.education, data = StudentperformanceDF))
+
+summary(model1a)
+
+#Creating a model for the writing score
+model1b <- (lm(formula = reading.score.percentage ~ math.percentage + writing.score.percentage + Lunch_Dummy + Sex_Dummy + Test.preparation.course_Dummy + race.ethnicity + parental.level.of.education, data = StudentperformanceDF))
+
+summary(model1b)
+
+#Creating a model for the reading score
+model1c <- (lm(formula =  writing.score.percentage ~ reading.score.percentage + math.percentage + Lunch_Dummy + Sex_Dummy + Test.preparation.course_Dummy + race.ethnicity + parental.level.of.education, data = StudentperformanceDF))
+
+summary(model1c)
+```
+
+##Exporting models to Word 
+```{r}
+wordreg(list(model1a), file = "Math Regression.doc")
+```
+
+##Looking for non-linear relationships
+```{r}
+ggplot(StudentperformanceDF,aes(x=math.percentage, y = reading.score.percentage))+geom_point()+geom_smooth(method=loess)
+ggplot(StudentperformanceDF,aes(x=math.percentage, y = writing.score.percentage))+geom_point()+geom_smooth(method=loess)
+ggplot(StudentperformanceDF,aes(x=writing.score.percentage, y = reading.score.percentage))+geom_point()+geom_smooth(method=loess)
+
+```
+
